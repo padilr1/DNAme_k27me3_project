@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+articles/
+raw_methyl_data/
+processed_methyl_data/
+graphs/

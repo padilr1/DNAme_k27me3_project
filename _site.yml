@@ -1,0 +1,9 @@
+name: "DNAme_K27M"
+navbar:
+  title: "DNAme_K27M"
+  left:
+    - text: "DNAme"
+      href: index.html
+    - text: "Disease"
+      href: second_page.html
+output_dir: "docs"

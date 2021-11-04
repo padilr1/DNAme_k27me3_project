@@ -1,0 +1,107 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    collapsed: false
+    number_sections: false
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(data.table)
+library(plotly)
+library(GenomicRanges)
+library(heatmaply)
+library(cluster)
+library(rtracklayer)
+library(gridExtra)
+library(DiffBind)
+library(idr2d)
+library(patchwork)
+library(eulerr)
+library(dplyr)
+library(reactable)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
+setwd("~/Documents/DNAme_k27me3_project")
+```
+
+```{r include = FALSE}
+
+get_cgi_datasets <- function(x){
+  df <- reshape2::melt(x,value.name = c("chr","start","end","width","strand","probe","beta_value","count")) %>%
+    pivot_longer(beta_value) %>%
+    dplyr::select(c("name","value"))
+  return(df)
+}
+
+#y = c("DIPGXIII_K27M","DIPGXIII_KO","HSJ019_K27M","HSJ019_KO")
+#meth.data <- list(meth_DIPGXIII_CGI,meth_DIPGXIIIKO_CGI,meth_HSJ019_CGI,meth_HSJ019KO_CGI)
+
+#p_meth_data <- lapply(meth.data,get_cgi_datasets) %>%
+ # purrr::map2(y,~cbind(.x, sample=.y)) %>%# add sample names
+ # bind_rows()#create data frame with rows
+
+#meth_K27MvKO_cgi <- rbind(p_meth_data,meth_BT245_complete)
+
+#meth_K27MvKO_cgi$condition <- meth_K27MvKO_cgi$sample
+
+#meth_K27MvKO_cgi$condition <- gsub(".*_", "", meth_K27MvKO_cgi$condition) #add condition column
+
+#meth_K27MvKO_cgi$condition <- as.factor(meth_K27MvKO_cgi$condition)
+
+#save(meth_K27MvKO_cgi,file="~/Documents/DNAme_k27me3_project/processed_methyl_data/meth_K27MvKO_cgi.RData")
+
+#meth_K27MvKO_cgi$cell_line <- meth_K27MvKO_cgi$sample
+
+#meth_K27MvKO_cgi$cell_line<- gsub("_.*", "", meth_K27MvKO_cgi$cell_line) 
+
+load("processed_methyl_data/meth_K27MvKO_cgi.RData")
+
+```
+
+```{r EXTRA CODES,include=FALSE}
+#H1_wgbs_v2 <- import.bedGraph("raw_methyl_data/H1.bedGraph")
+#H1_granges <- GRanges(H1_wgbs_v2) 
+#H1_methylation <- H1_granges$score
+
+#wilcox.test(meth_K27MvKO_cgi[meth_K27MvKO_cgi[,"sample"] =="HSJ019_K27M","value"],meth_K27MvKO_cgi[meth_K27MvKO_cgi[,"sample"] =="HSJ019_KO","value"],alternative = "two.sided",paired=TRUE,p.adjust.method = "BH")
+
+#meth_K27MvKO_cgi[meth_K27MvKO_cgi[,"sample"] =="BT245_KO","value"] #get specific column
+
+#samples <- unique(meth_K27MvKO_cgi$sample)
+
+#my_comparisons <- list(c("DIPGXIII_K27M","DIPGXIII_KO"),c("HSJ019_K27M","HSJ019_KO"),c("BT245_K27M","BT245_KO" ))
+
+stat.test <- compare_means(value ~ condition, data = meth_K27MvKO_cgi,group.by = "cell_line",paired = TRUE,p.adjust.method = "fdr")
+
+p <- ggplot(meth_K27MvKO_cgi,aes(x = cell_line,y=value,colour=condition)) +
+geom_violin(position = position_dodge(.8),show.legend = TRUE) + 
+  geom_pointrange(stat = "summary",
+                  fun.min = function(v) quantile(v, .25),
+                  fun.max = function(v) quantile(v, .75),
+                  fun = median, fatten = .8,
+                  position = position_dodge(.8),show.legend = FALSE) +
+  theme(legend.position = 'bottom') +
+  labs(x="", y="DNA Methylation (Beta Values) at CGI") +
+  scale_fill_discrete(name = "Condition")
+```
+
+# DNAme at CG Islands
+
+```{r, warning=FALSE, echo=FALSE}
+
+compare_means(value ~ condition, data = meth_K27MvKO_cgi,group.by = "cell_line",paired = TRUE,p.adjust.method = "fdr") %>% dplyr::select(-".y.") %>%
+  reactable()
+
+p + stat_pvalue_manual(stat.test, x="cell_line", y.position = 110, label = "p.adj = {p.adj}", position = position_dodge(0.8))
+
+```
+
